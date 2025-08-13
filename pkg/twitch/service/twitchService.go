@@ -43,6 +43,7 @@ func (t *TwitchServiceImpl) Connect() error {
 	if err := reader.Join("MarluxMcLuxi"); err != nil {
 		panic(err)
 	}
+	
 	fmt.Println("Connected to IRC!")
 
 	<-sc
