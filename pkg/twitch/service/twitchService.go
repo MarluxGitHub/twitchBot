@@ -5,6 +5,8 @@ import (
 	"marluxGitHub/twitchbot/pkg/twitch/model"
 	"os"
 	"os/signal"
+	"regexp"
+	"strings"
 	"syscall"
 	"time"
 
@@ -40,10 +42,10 @@ func (t *TwitchServiceImpl) Connect() error {
 	reader.OnShardLatencyUpdate(onShardLatencyUpdate)
 	reader.OnShardMessage(t.onShardMessage)
 
-	if err := reader.Join("MarluxMcLuxi"); err != nil {
+	if err := reader.Join(t.config.Twitch.Channel); err != nil {
 		panic(err)
 	}
-	
+
 	fmt.Println("Connected to IRC!")
 
 	<-sc
@@ -63,10 +65,22 @@ func onShardLatencyUpdate(shardID int, latency time.Duration) {
 }
 
 func (t *TwitchServiceImpl) onShardMessage(shardID int, msg irc.ChatMessage) {
-	fmt.Printf("#%s %s: %s\n", msg.Channel, msg.Sender.DisplayName, msg.Text)
+	// Handle incoming chat messages with !
+	if strings.HasPrefix(msg.Text, "!") {
+		// regex first word after !
+		re := regexp.MustCompile(`^!(\w+)`)
+		matches := re.FindStringSubmatch(msg.Text)
 
-	if !msg.Sender.IsBroadcaster {
-		t.writer.Say("#marluxmcluxi", msg.Sender.DisplayName+" mag DinoDance")
+		if len(matches) > 1 {
+			command := matches[1]
+
+			// Check if Commands Dictionary contains a entry for command
+			if cmd, ok := Commands[command]; ok {
+				cmd(t, msg)
+			} else {
+				t.writer.Say(msg.Channel, fmt.Sprintf("Unknown command: %s", command))
+			}
+		}
 	}
 }
 
