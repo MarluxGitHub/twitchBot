@@ -1,6 +1,11 @@
 package application
 
-import "marluxGitHub/twitchbot/pkg/twitch/domain/service"
+import (
+	"marluxGitHub/twitchbot/pkg/twitch/domain/service"
+	"os"
+	"os/signal"
+	"syscall"
+)
 
 type ChatBot interface {
 	Start() error
@@ -21,8 +26,13 @@ func (t *ChatBotImpl) Start() error {
 		return err
 	}
 
+	sc := make(chan os.Signal, 1)
+	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGHUP)
+
 	go t.ircService.Connect(oauthToken)
 	go t.apiService.Connect(oauthToken)
+
+	<-sc
 
 	return nil
 }

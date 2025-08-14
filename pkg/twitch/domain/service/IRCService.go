@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/adeithe/go-twitch"
 	"github.com/adeithe/go-twitch/irc"
@@ -44,12 +45,18 @@ func (t *IRCServiceImpl) Connect(outhAuthToken string) error {
 
 	fmt.Println("Connected to IRC!")
 
+	reader.OnShardLatencyUpdate(t.onShardReconnect)
+
 	<-sc
 	fmt.Println("Stopping...")
 	reader.Close()
 	writer.Close()
 
 	return nil
+}
+
+func (t *IRCServiceImpl) onShardReconnect(shard int, latency time.Duration) {
+	t.writer.Sayf(t.config.Twitch.Channel, "Moderator: %s has connected", t.config.Twitch.Username)
 }
 
 func NewIRCService(config *model.Config) IRCService {
