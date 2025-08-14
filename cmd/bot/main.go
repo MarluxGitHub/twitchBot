@@ -1,23 +1,14 @@
 package main
 
-import (
-	"marluxGitHub/twitchbot/pkg/twitch/service"
-)
+import "marluxGitHub/twitchbot/pkg/twitch/application"
 
 func main() {
 	// Initialize ConfigService
-	configService := service.NewConfigLoader()
-
-	config, err := configService.LoadConfig()
+	chatBot, err := application.NewChatBot()
 
 	if err != nil {
 		panic(err)
 	}
 
-	// Initialize the Twitch service
-	twitchService := service.NewTwitchService(config)
-	// Connect to Twitch
-	if err := twitchService.Connect(); err != nil {
-		panic(err)
-	}
+	chatBot.Start()
 }

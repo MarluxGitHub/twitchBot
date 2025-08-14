@@ -3,7 +3,11 @@ module marluxGitHub/twitchbot
 go 1.24.6
 
 require (
-	github.com/adeithe/go-twitch v0.3.1 // indirect
+	github.com/adeithe/go-twitch v0.3.1
+	github.com/spf13/viper v1.20.1
+)
+
+require (
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
 	github.com/gorilla/websocket v1.4.2 // indirect
@@ -13,7 +17,6 @@ require (
 	github.com/spf13/afero v1.12.0 // indirect
 	github.com/spf13/cast v1.7.1 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
-	github.com/spf13/viper v1.20.1 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect

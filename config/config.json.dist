@@ -1,7 +1,11 @@
 {
     "twitch": {
         "username": "...",
-        "oauth": "...",
-        "channel": "..."
+        "clientId": "...",
+        "clientSecret: "...",
+        "channel": "...",
+        "autorisationCode": "..."
+
+
     }
 }
