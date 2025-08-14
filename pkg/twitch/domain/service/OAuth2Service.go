@@ -1,8 +1,8 @@
 package service
 
 import (
-	oauth2client "marluxGitHub/twitchbot/pkg/twitch/domain/infrastructure/twitch/oauth2Client"
 	"marluxGitHub/twitchbot/pkg/twitch/domain/model"
+	"marluxGitHub/twitchbot/pkg/twitch/infrastructure/twitch/oauth2client"
 )
 
 type OAuth2Service interface {
