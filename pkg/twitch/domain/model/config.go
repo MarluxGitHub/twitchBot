@@ -5,9 +5,9 @@ type Config struct {
 }
 
 type TwitchConfig struct {
-	Username         string `json:"username"`
-	ClientID         string `json:"clientId"`
-	ClientSecret     string `json:"clientSecret"`
-	AutorisationCode string `json:"autorisationCode"`
-	Channel          string `json:"channel"`
+	Username          string `json:"username"`
+	ClientID          string `json:"clientId"`
+	ClientSecret      string `json:"clientSecret"`
+	AuthorizationCode string `json:"authorizationCode"`
+	Channel           string `json:"channel"`
 }

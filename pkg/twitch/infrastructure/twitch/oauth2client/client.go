@@ -52,7 +52,7 @@ func (t *OAuth2ClientImpl) GetOAuth2Token() (*model.OAuth, error) {
 	data := make(map[string]string)
 	data["client_id"] = t.config.Twitch.ClientID
 	data["client_secret"] = t.config.Twitch.ClientSecret
-	data["code"] = t.config.Twitch.AutorisationCode
+	data["code"] = t.config.Twitch.AuthorizationCode
 	data["grant_type"] = "authorization_code"
 	data["redirect_uri"] = "http://localhost"
 
