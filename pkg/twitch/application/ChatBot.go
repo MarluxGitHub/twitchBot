@@ -46,7 +46,10 @@ func NewChatBot() (ChatBot, error) {
 		return nil, err
 	}
 
-	oauthService := service.NewOAuth2Service(config)
+	oauthService := service.NewOAuth2Service(
+		config,
+		configService)
+
 	ircService := service.NewIRCService(config)
 	apiService := service.NewAPIService(config)
 

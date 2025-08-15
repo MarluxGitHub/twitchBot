@@ -8,33 +8,20 @@ import (
 	"strings"
 )
 
+const (
+	oauth2TokenUrl = "https://id.twitch.tv/oauth2/token"
+)
+
 type OAuth2Client interface {
-	GetOAuth2Token() (string, error)
+	GetOAuth2Token() (*model.OAuth, error)
+	RefreshOAuth2Token(*model.OAuth) (*model.OAuth, error)
 }
 
 type OAuth2ClientImpl struct {
 	config *model.Config
 }
 
-func (t *OAuth2ClientImpl) GetOAuth2Token() (string, error) {
-	url := "https://id.twitch.tv/oauth2/token"
-
-	oauth2Request := OAuth2Request{
-		ClientID:     t.config.Twitch.ClientID,
-		ClientSecret: t.config.Twitch.ClientSecret,
-		Code:         t.config.Twitch.AutorisationCode,
-		GrantType:    "authorization_code",
-		RedirectURI:  "http://localhost",
-	}
-
-	// Die Daten für die Anfrage als x-www-form-urlencoded kodieren
-	data := make(map[string]string)
-	data["client_id"] = oauth2Request.ClientID
-	data["client_secret"] = oauth2Request.ClientSecret
-	data["code"] = oauth2Request.Code
-	data["grant_type"] = oauth2Request.GrantType
-	data["redirect_uri"] = oauth2Request.RedirectURI
-
+func (t *OAuth2ClientImpl) formEncode(data map[string]string) string {
 	form := ""
 	for k, v := range data {
 		if form != "" {
@@ -43,9 +30,42 @@ func (t *OAuth2ClientImpl) GetOAuth2Token() (string, error) {
 		form += k + "=" + v
 	}
 
-	req, err := http.NewRequest("POST", url, io.NopCloser(strings.NewReader(form)))
+	return form
+}
+
+func (t *OAuth2ClientImpl) RefreshOAuth2Token(oauth *model.OAuth) (*model.OAuth, error) {
+	// Die Daten für die Anfrage als x-www-form-urlencoded kodieren
+	data := make(map[string]string)
+	data["client_id"] = t.config.Twitch.ClientID
+	data["client_secret"] = t.config.Twitch.ClientSecret
+	data["grant_type"] = "refresh_token"
+	data["refresh_token"] = oauth.RefreshToken
+
+	form := t.formEncode(data)
+
+	return doRequest(form)
+
+}
+
+func (t *OAuth2ClientImpl) GetOAuth2Token() (*model.OAuth, error) {
+	// Die Daten für die Anfrage als x-www-form-urlencoded kodieren
+	data := make(map[string]string)
+	data["client_id"] = t.config.Twitch.ClientID
+	data["client_secret"] = t.config.Twitch.ClientSecret
+	data["code"] = t.config.Twitch.AutorisationCode
+	data["grant_type"] = "authorization_code"
+	data["redirect_uri"] = "http://localhost"
+
+	form := t.formEncode(data)
+
+	return doRequest(form)
+
+}
+
+func doRequest(form string) (*model.OAuth, error) {
+	req, err := http.NewRequest("POST", oauth2TokenUrl, io.NopCloser(strings.NewReader(form)))
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
@@ -53,24 +73,30 @@ func (t *OAuth2ClientImpl) GetOAuth2Token() (string, error) {
 	resp, err := client.Do(req)
 
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	var oauth2Response OAuth2Response
 	err = json.Unmarshal(body, &oauth2Response)
 
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return oauth2Response.AccessToken, nil
+	oauth := model.OAuth{
+		AccessToken:  oauth2Response.AccessToken,
+		RefreshToken: oauth2Response.RefreshToken,
+		ExpiresIn:    oauth2Response.ExpiresIn,
+	}
+
+	return &oauth, nil
 }
 
 func NewOAuth2Client(config *model.Config) OAuth2Client {

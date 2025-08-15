@@ -5,8 +5,8 @@ import (
 	"marluxGitHub/twitchbot/pkg/twitch/domain/model"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
-	"time"
 
 	"github.com/adeithe/go-twitch"
 	"github.com/adeithe/go-twitch/irc"
@@ -17,7 +17,8 @@ type IRCService interface {
 }
 
 type IRCServiceImpl struct {
-	config *model.Config
+	config         *model.Config
+	commandService CommandService
 
 	writer *irc.Conn
 	reader *irc.Client
@@ -45,7 +46,8 @@ func (t *IRCServiceImpl) Connect(outhAuthToken string) error {
 
 	fmt.Println("Connected to IRC!")
 
-	reader.OnShardLatencyUpdate(t.onShardReconnect)
+	reader.OnShardChannelJoin(t.onShardChannelJoin)
+	reader.OnShardMessage(t.onShardRawMessage)
 
 	<-sc
 	fmt.Println("Stopping...")
@@ -55,10 +57,26 @@ func (t *IRCServiceImpl) Connect(outhAuthToken string) error {
 	return nil
 }
 
-func (t *IRCServiceImpl) onShardReconnect(shard int, latency time.Duration) {
-	t.writer.Sayf(t.config.Twitch.Channel, "Moderator: %s has connected", t.config.Twitch.Username)
+func (t *IRCServiceImpl) onShardChannelJoin(shard int, channel, user string) {
+	t.writer.Sayf(t.config.Twitch.Channel, "Welcome @%s DinoDance", user)
+
 }
 
-func NewIRCService(config *model.Config) IRCService {
-	return &IRCServiceImpl{config: config}
+func (t *IRCServiceImpl) onShardRawMessage(shard int, message irc.ChatMessage) {
+	if message.Sender.IsModerator {
+		return
+	}
+
+	if strings.HasPrefix(message.Text, "!") {
+		t.commandService.HandleCommand(message.Text)
+	}
+}
+
+func NewIRCService(
+	config *model.Config,
+) IRCService {
+	return &IRCServiceImpl{
+		config:         config,
+		commandService: NewCommandService(),
+	}
 }
