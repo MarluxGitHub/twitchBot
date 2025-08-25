@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/json"
+	"fmt"
 	"marluxGitHub/twitchbot/pkg/twitch/domain/model"
 	"os"
 
@@ -11,6 +12,8 @@ import (
 const (
 	oAuthConfFile = "oAuthConf.json"
 )
+
+var filepath string = oAuthConfFile
 
 type ConfigService interface {
 	LoadConfig() (*model.Config, error)
@@ -40,11 +43,19 @@ func (t *ConfigServiceImpl) LoadConfig() (*model.Config, error) {
 }
 
 func (t *ConfigServiceImpl) GetOAuth2Config() (*model.OAuth, error) {
-	viper.SetConfigFile(oAuthConfFile)
+	viper.SetConfigFile(filepath)
 
 	if err := viper.ReadInConfig(); err != nil {
-		// Wenn die Konfigurationsdatei nicht existiert, gib nil zurück
-		return nil, nil
+		// Wenn die Konfigurationsdatei nicht existiert, teste anderen Pfad
+		filepath = "cmd/bot/" + oAuthConfFile
+		viper.SetConfigFile(filepath)
+
+		if err := viper.ReadInConfig(); err != nil {
+			fmt.Printf("config not found")
+
+			// Wenn die Konfigurationsdatei nicht existiert, gib nil zurück
+			return nil, nil
+		}
 	}
 
 	var oauth2 model.OAuth
@@ -59,7 +70,7 @@ func (t *ConfigServiceImpl) GetOAuth2Config() (*model.OAuth, error) {
 func (t *ConfigServiceImpl) WriteOAuth2Config(oauth2 *model.OAuth) error {
 	// Schreibe die OAuth2-Daten im gewünschten Format in die oAuthConf.json
 	viper.SetConfigType("json")
-	viper.SetConfigFile(oAuthConfFile)
+	viper.SetConfigFile(filepath)
 
 	// Erstelle eine Map, die dem gewünschten JSON-Format entspricht
 	data := map[string]any{

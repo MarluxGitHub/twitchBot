@@ -29,8 +29,10 @@ func (t *ChatBotImpl) Start() error {
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGHUP)
 
+	t.apiService.SetAuthToken(oauthToken)
+	t.apiService.Connect()
+
 	go t.ircService.Connect(oauthToken)
-	go t.apiService.Connect(oauthToken)
 
 	<-sc
 
@@ -50,8 +52,8 @@ func NewChatBot() (ChatBot, error) {
 		config,
 		configService)
 
-	ircService := service.NewIRCService(config)
 	apiService := service.NewAPIService(config)
+	ircService := service.NewIRCService(config, apiService)
 
 	return &ChatBotImpl{
 		configService: configService,

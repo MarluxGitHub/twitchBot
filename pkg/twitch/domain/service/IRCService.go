@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/adeithe/go-twitch"
 	"github.com/adeithe/go-twitch/irc"
@@ -14,14 +15,17 @@ import (
 
 type IRCService interface {
 	Connect(string) error
+	SendMessage(channel, message string)
 }
 
 type IRCServiceImpl struct {
 	config         *model.Config
 	commandService CommandService
+	apiService     APIService
 
-	writer *irc.Conn
-	reader *irc.Client
+	writer      *irc.Conn
+	reader      *irc.Client
+	stopWelcome chan struct{}
 }
 
 func (t *IRCServiceImpl) Connect(outhAuthToken string) error {
@@ -46,20 +50,18 @@ func (t *IRCServiceImpl) Connect(outhAuthToken string) error {
 
 	fmt.Println("Connected to IRC!")
 
-	reader.OnShardChannelJoin(t.onShardChannelJoin)
 	reader.OnShardMessage(t.onShardRawMessage)
 
+	t.stopWelcome = make(chan struct{})
+	go t.botWelcomeMessage()
+
 	<-sc
+	close(t.stopWelcome)
 	fmt.Println("Stopping...")
 	reader.Close()
 	writer.Close()
 
 	return nil
-}
-
-func (t *IRCServiceImpl) onShardChannelJoin(shard int, channel, user string) {
-	t.writer.Sayf(t.config.Twitch.Channel, "Welcome @%s DinoDance", user)
-
 }
 
 func (t *IRCServiceImpl) onShardRawMessage(shard int, message irc.ChatMessage) {
@@ -68,15 +70,40 @@ func (t *IRCServiceImpl) onShardRawMessage(shard int, message irc.ChatMessage) {
 	}
 
 	if strings.HasPrefix(message.Text, "!") {
-		t.commandService.HandleCommand(message.Text)
+		t.commandService.HandleCommand(t, message)
+
 	}
+}
+
+func (t *IRCServiceImpl) botWelcomeMessage() {
+	for {
+		select {
+		case <-t.stopWelcome:
+			return
+		default:
+			t.writer.Sayf(t.config.Twitch.Channel, "Welcome on the Channel. I'm ModMilli on the Duty. If you like what you see, feel free to follow! DinoDance")
+			// 10 Minuten warten oder früher abbrechen
+			select {
+			case <-t.stopWelcome:
+				return
+			case <-time.After(10 * time.Minute):
+			}
+		}
+	}
+
+}
+
+func (t *IRCServiceImpl) SendMessage(channel, message string) {
+	t.writer.Say(channel, message)
 }
 
 func NewIRCService(
 	config *model.Config,
+	apiService APIService,
 ) IRCService {
 	return &IRCServiceImpl{
 		config:         config,
 		commandService: NewCommandService(),
+		apiService:     apiService,
 	}
 }
